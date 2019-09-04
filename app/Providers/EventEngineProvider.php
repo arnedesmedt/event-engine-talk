@@ -8,6 +8,7 @@ use App;
 use App\Domain\Api\Aggregate;
 use App\Domain\Api\Command;
 use App\Domain\Api\Event;
+use App\Domain\Api\Listener;
 use App\Domain\Api\Query;
 use App\Domain\Api\Type;
 use App\Persistence\PostgresSingleStreamStrategy;
@@ -157,6 +158,7 @@ class EventEngineProvider extends ServiceProvider
             Aggregate::class,
             Query::class,
             Type::class,
+            Listener::class,
         ];
 
         $this->app->singleton(

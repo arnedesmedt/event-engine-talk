@@ -1,0 +1,16 @@
+parameters:
+    autoload_files:
+        - %currentWorkingDirectory%/_ide_helper.php
+        - %currentWorkingDirectory%/vendor/autoload.php
+    excludes_analyse:
+        - %currentWorkingDirectory%/database/migrations/*
+        - %currentWorkingDirectory%/database/factories/*
+        - %currentWorkingDirectory%/server.php
+        - %currentWorkingDirectory%/config/*
+        - %currentWorkingDirectory%/routes/console.php
+        - %currentWorkingDirectory%/resources/views/render/*
+        - %currentWorkingDirectory%/.phpstorm.meta.php
+    ignoreErrors:
+        -
+            message: '#Call to an undefined method [a-zA-Z0-9\\_]+::(readModel|streamName)\(\)#'
+            path: %currentWorkingDirectory%/app/Persistence/WriteModelStreamProjection.php

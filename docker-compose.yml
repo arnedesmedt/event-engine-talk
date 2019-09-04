@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+    db:
+        image: postgres
+        ports:
+            - 5432:5432
+        expose:
+            - 5432
+        environment:
+            POSTGRES_PASSWORD: test1234
+            POSTGRES_USER: test
+            POSTGRES_DB: application
+        networks:
+            - app_network
+
+    backend:
+        image: prooph/php:7.3-fpm-xdebug
+        volumes:
+            - ./:/var/www
+        ports:
+            - 80:8000
+        expose:
+            - 8000
+        depends_on:
+            - db
+        networks:
+            - app_network
+        links:
+            - db
+        command: php artisan serve --host=0.0.0.0
+
+    open-api:
+        image: swaggerapi/swagger-ui
+        ports:
+            - 9100:8080
+        expose:
+            - 8080
+        environment:
+            URLS: "[ { url: \"http://0.0.0.0/api/docs\", name: \"Bank app\" } ]"
+
+networks:
+    app_network:
+        driver: bridge

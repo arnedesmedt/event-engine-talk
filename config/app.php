@@ -167,6 +167,7 @@ return [
         /*
          * Package Service Providers...
          */
+        App\Providers\EventEngineProvider::class,
 
         /*
          * Application Service Providers...

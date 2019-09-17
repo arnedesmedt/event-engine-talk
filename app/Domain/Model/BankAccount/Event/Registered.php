@@ -7,10 +7,11 @@ namespace App\Domain\Model\BankAccount\Event;
 use App\Domain\Model\BankAccount\ValueObject\AccountId;
 use App\Domain\Model\BankAccount\ValueObject\Name;
 use App\Domain\Model\BankAccount\ValueObject\Owner;
+use App\Domain\Model\Base\DomainEvent;
 use EventEngine\Data\ImmutableRecord;
 use EventEngine\Data\ImmutableRecordLogic;
 
-final class Registered implements ImmutableRecord
+final class Registered implements ImmutableRecord, DomainEvent
 {
     use ImmutableRecordLogic;
 

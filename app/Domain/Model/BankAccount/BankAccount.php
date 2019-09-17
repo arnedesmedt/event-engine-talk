@@ -11,53 +11,86 @@ use App\Domain\Model\BankAccount\Event\DepositReceived;
 use App\Domain\Model\BankAccount\Event\Registered;
 use App\Domain\Model\BankAccount\Event\WithdrawalExecuted;
 use App\Domain\Model\BankAccount\Event\WithdrawalRefused;
-use Traversable;
+use App\Domain\Model\Base\AggregateRoot;
+use App\Domain\Model\Base\EventSourced;
 
-final class BankAccount
+final class BankAccount implements AggregateRoot
 {
-    public static function register(Register $registerBankAccount) : Traversable
+    use EventSourced;
+
+    /** @var State */
+    private $state;
+
+    public static function reconstituteFromStateArray(array $state) : AggregateRoot
     {
-        yield Registered::fromArray($registerBankAccount->toArray());
+        $self = new self();
+        $self->state = State::fromArray($state);
+
+        return $self;
     }
 
-    public static function executeWithdrawal(State $state, ExecuteWithdrawal $executeWithdrawal) : Traversable
+    public static function register(Register $registerBankAccount) : AggregateRoot
     {
-        if ($state->isAmountBelowTresholdAfterWithdrawalOf($executeWithdrawal->amount())) {
-            yield WithdrawalRefused::fromArray(
-                array_merge(
-                    ['accountAmount' => $state->amount()],
-                    $executeWithdrawal->toArray()
+        $self = new self();
+        $self->recordThat(Registered::fromArray($registerBankAccount->toArray()));
+
+        return $self;
+    }
+
+    public function executeWithdrawal(ExecuteWithdrawal $executeWithdrawal) : void
+    {
+        if ($this->state()->isAmountBelowTresholdAfterWithdrawalOf($executeWithdrawal->amount())) {
+            $this->recordThat(
+                WithdrawalRefused::fromArray(
+                    array_merge(
+                        ['accountAmount' => $this->state()->amount()],
+                        $executeWithdrawal->toArray()
+                    )
                 )
             );
 
             return;
         }
 
-        yield WithdrawalExecuted::fromArray($executeWithdrawal->toArray());
+        $this->recordThat(WithdrawalExecuted::fromArray($executeWithdrawal->toArray()));
     }
 
-    public static function receiveDeposit(State $state, ReceiveDeposit $receiveDeposit) : Traversable
+    public function receiveDeposit(ReceiveDeposit $receiveDeposit) : void
     {
-        yield DepositReceived::fromArray($receiveDeposit->toArray());
+        $this->recordThat(DepositReceived::fromArray($receiveDeposit->toArray()));
     }
 
-    public static function whenBankAccountRegistered(Registered $bankAccountRegistered) : State
+    // phpcs:ignore SlevomatCodingStandard.Classes.UnusedPrivateElements.UnusedMethod
+    private function whenRegistered(Registered $bankAccountRegistered) : void
     {
-        return State::fromArray($bankAccountRegistered->toArray());
+        $this->state = State::fromArray($bankAccountRegistered->toArray());
     }
 
-    public static function whenWithdrawalExecuted(State $state, WithdrawalExecuted $withdrawalExecuted) : State
+    // phpcs:ignore SlevomatCodingStandard.Classes.UnusedPrivateElements.UnusedMethod
+    private function whenWithdrawalExecuted(WithdrawalExecuted $withdrawalExecuted) : void
     {
-        return $state->withWithdrawalExecuted($withdrawalExecuted->amount());
+        $this->state = $this->state()->withWithdrawalExecuted($withdrawalExecuted->amount());
     }
 
-    public static function whenWithdrawalRefused(State $state) : State
+    // phpcs:ignore SlevomatCodingStandard.Classes.UnusedPrivateElements.UnusedMethod
+    private function whenWithdrawalRefused() : void
     {
-        return $state;
+        return;
     }
 
-    public static function whenDepositReceived(State $state, DepositReceived $depositReceived) : State
+    // phpcs:ignore SlevomatCodingStandard.Classes.UnusedPrivateElements.UnusedMethod
+    private function whenDepositReceived(DepositReceived $depositReceived) : void
     {
-        return $state->withDepositReceived($depositReceived->amount());
+        $this->state = $this->state()->withDepositReceived($depositReceived->amount());
+    }
+
+    public function state() : State
+    {
+        return $this->state;
+    }
+
+    public function toArray() : array
+    {
+        return $this->state->toArray();
     }
 }

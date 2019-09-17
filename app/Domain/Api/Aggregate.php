@@ -7,10 +7,15 @@ namespace App\Domain\Api;
 use App\Domain\Model\BankAccount\BankAccount;
 use EventEngine\EventEngine;
 use EventEngine\EventEngineDescription;
+use EventEngine\Runtime\Oop\FlavourHint;
 
 final class Aggregate implements EventEngineDescription
 {
     public const BANK_ACCOUNT = 'BankAccount';
+
+    public const CLASS_MAP = [
+        self::BANK_ACCOUNT => BankAccount::class,
+    ];
 
     public static function describe(EventEngine $eventEngine) : void
     {
@@ -19,24 +24,24 @@ final class Aggregate implements EventEngineDescription
             ->identifiedBy(Payload::ACCOUNT_ID)
             ->handle([BankAccount::class, 'register'])
             ->recordThat(Event::BANK_ACCOUNT_REGISTERED)
-            ->apply([BankAccount::class, 'whenBankAccountRegistered'])
+            ->apply([FlavourHint::class, 'useAggregate'])
             ->storeStateIn('bank_accounts')
             ->storeEventsIn('bank_account_stream');
 
         $eventEngine->process(Command::EXECUTE_WITHDRAWAL)
             ->withExisting(self::BANK_ACCOUNT)
             ->identifiedBy(Payload::ACCOUNT_ID)
-            ->handle([BankAccount::class, 'executeWithdrawal'])
+            ->handle([FlavourHint::class, 'useAggregate'])
             ->recordThat(Event::WITHDRAWAL_REFUSED)
-            ->apply([BankAccount::class, 'whenWithdrawalRefused'])
+            ->apply([FlavourHint::class, 'useAggregate'])
             ->orRecordThat(Event::WITHDRAWAL_EXECUTED)
-            ->apply([BankAccount::class, 'whenWithdrawalExecuted']);
+            ->apply([FlavourHint::class, 'useAggregate']);
 
         $eventEngine->process(Command::RECEIVE_DEPOSIT)
             ->withExisting(self::BANK_ACCOUNT)
             ->identifiedBy(Payload::ACCOUNT_ID)
-            ->handle([BankAccount::class, 'receiveDeposit'])
+            ->handle([FlavourHint::class, 'useAggregate'])
             ->recordThat(Event::DEPOSIT_RECEIVED)
-            ->apply([BankAccount::class, 'whenDepositReceived']);
+            ->apply([FlavourHint::class, 'useAggregate']);
     }
 }

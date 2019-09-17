@@ -4,47 +4,51 @@ declare(strict_types=1);
 
 namespace App\Domain\Model\BankAccount;
 
-use App\Domain\Api\Event;
-use EventEngine\Messaging\Message;
+use App\Domain\Model\BankAccount\Command\ExecuteWithdrawal;
+use App\Domain\Model\BankAccount\Command\ReceiveDeposit;
+use App\Domain\Model\BankAccount\Command\Register;
+use App\Domain\Model\BankAccount\Event\DepositReceived;
+use App\Domain\Model\BankAccount\Event\Registered;
+use App\Domain\Model\BankAccount\Event\WithdrawalExecuted;
+use App\Domain\Model\BankAccount\Event\WithdrawalRefused;
 use Traversable;
 
 final class BankAccount
 {
-    public static function register(Message $registerBankAccount) : Traversable
+    public static function register(Register $registerBankAccount) : Traversable
     {
-        yield [Event::BANK_ACCOUNT_REGISTERED, $registerBankAccount->payload()];
+        yield Registered::fromArray($registerBankAccount->toArray());
     }
 
-    public static function executeWithdrawal(State $state, Message $executeWithdrawal) : Traversable
+    public static function executeWithdrawal(State $state, ExecuteWithdrawal $executeWithdrawal) : Traversable
     {
-        if ($state->isAmountBelowTresholdAfterWithdrawalOf($executeWithdrawal->get('amount'))) {
-            yield [
-                Event::WITHDRAWAL_REFUSED,
+        if ($state->isAmountBelowTresholdAfterWithdrawalOf($executeWithdrawal->amount())) {
+            yield WithdrawalRefused::fromArray(
                 array_merge(
                     ['accountAmount' => $state->amount()],
-                    $executeWithdrawal->payload()
-                ),
-            ];
+                    $executeWithdrawal->toArray()
+                )
+            );
 
             return;
         }
 
-        yield [Event::WITHDRAWAL_EXECUTED, $executeWithdrawal->payload()];
+        yield WithdrawalExecuted::fromArray($executeWithdrawal->toArray());
     }
 
-    public static function receiveDeposit(State $state, Message $receiveDeposit) : Traversable
+    public static function receiveDeposit(State $state, ReceiveDeposit $receiveDeposit) : Traversable
     {
-        yield [Event::DEPOSIT_RECEIVED, $receiveDeposit->payload()];
+        yield DepositReceived::fromArray($receiveDeposit->toArray());
     }
 
-    public static function whenBankAccountRegistered(Message $bankAccountRegistered) : State
+    public static function whenBankAccountRegistered(Registered $bankAccountRegistered) : State
     {
-        return State::fromArray($bankAccountRegistered->payload());
+        return State::fromArray($bankAccountRegistered->toArray());
     }
 
-    public static function whenWithdrawalExecuted(State $state, Message $withdrawalExecuted) : State
+    public static function whenWithdrawalExecuted(State $state, WithdrawalExecuted $withdrawalExecuted) : State
     {
-        return $state->withWithdrawalExecuted($withdrawalExecuted->get('amount'));
+        return $state->withWithdrawalExecuted($withdrawalExecuted->amount());
     }
 
     public static function whenWithdrawalRefused(State $state) : State
@@ -52,8 +56,8 @@ final class BankAccount
         return $state;
     }
 
-    public static function whenDepositReceived(State $state, Message $depositReceived) : State
+    public static function whenDepositReceived(State $state, DepositReceived $depositReceived) : State
     {
-        return $state->withDepositReceived($depositReceived->get('amount'));
+        return $state->withDepositReceived($depositReceived->amount());
     }
 }

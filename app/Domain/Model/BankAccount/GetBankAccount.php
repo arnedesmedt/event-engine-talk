@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Domain\Model\BankAccount;
 
+use App\Domain\Model\BankAccount\Query\GetBankAccount as GetBankAccountQuery;
+use App\Domain\Resolver\Query;
+use App\Domain\Resolver\Resolver;
 use EventEngine\DocumentStore\DocumentStore;
-use EventEngine\Messaging\Message;
-use EventEngine\Querying\Resolver;
+use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class GetBankAccount implements Resolver
@@ -19,9 +21,13 @@ final class GetBankAccount implements Resolver
         $this->documentStore = $documentStore;
     }
 
-    public function resolve(Message $query) : array
+    public function resolve(Query $query) : array
     {
-        $bankAccount = $this->documentStore->getDoc('bank_accounts', $query->get('accountId'));
+        if (! $query instanceof GetBankAccountQuery) {
+            throw new RuntimeException('Query not supported');
+        }
+
+        $bankAccount = $this->documentStore->getDoc('bank_accounts', $query->accountId()->toString());
 
         if (! $bankAccount) {
             throw new NotFoundHttpException(

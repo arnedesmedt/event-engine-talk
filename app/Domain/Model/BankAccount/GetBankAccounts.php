@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domain\Model\BankAccount;
 
+use App\Domain\Model\BankAccount\Query\GetBankAccounts as GetBankAccountsQuery;
+use App\Domain\Resolver\Query;
+use App\Domain\Resolver\Resolver;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\DocumentStore\Filter\AnyFilter;
 use EventEngine\DocumentStore\Filter\LikeFilter;
-use EventEngine\Messaging\Message;
-use EventEngine\Querying\Resolver;
+use RuntimeException;
 
 final class GetBankAccounts implements Resolver
 {
@@ -20,10 +22,14 @@ final class GetBankAccounts implements Resolver
         $this->documentStore = $documentStore;
     }
 
-    public function resolve(Message $query) : array
+    public function resolve(Query $query) : array
     {
-        $owner = $query->getOrDefault('owner', null);
-        $filter = $owner ? new LikeFilter('state.owner', $owner) : new AnyFilter();
+        if (! $query instanceof GetBankAccountsQuery) {
+            throw new RuntimeException('Query not supported');
+        }
+
+        $owner = $query->owner();
+        $filter = $owner ? new LikeFilter('state.owner', $owner->toString()) : new AnyFilter();
 
         $bankAccounts = $this->documentStore->filterDocs('bank_accounts', $filter);
 

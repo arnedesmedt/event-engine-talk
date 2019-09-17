@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Model\BankAccount;
 
+use App\Domain\Model\BankAccount\ValueObject\TransactionAmount;
 use EventEngine\Data\ImmutableRecord;
 use EventEngine\Data\ImmutableRecordLogic;
 
@@ -45,24 +46,24 @@ final class State implements ImmutableRecord
         return $this->amount;
     }
 
-    public function withWithdrawalExecuted(int $amount) : self
+    public function withWithdrawalExecuted(TransactionAmount $amount) : self
     {
         $copy = clone $this;
-        $copy->amount -= $amount;
+        $copy->amount -= $amount->toInt();
 
         return $copy;
     }
 
-    public function withDepositReceived(int $amount) : self
+    public function withDepositReceived(TransactionAmount $amount) : self
     {
         $copy = clone $this;
-        $copy->amount += $amount;
+        $copy->amount += $amount->toInt();
 
         return $copy;
     }
 
-    public function isAmountBelowTresholdAfterWithdrawalOf(int $amount) : bool
+    public function isAmountBelowTresholdAfterWithdrawalOf(TransactionAmount $amount) : bool
     {
-        return $this->amount - $amount < self::MINIMUM_TRESHOLD;
+        return $this->amount - $amount->toInt() < self::MINIMUM_TRESHOLD;
     }
 }

@@ -6,8 +6,8 @@ namespace App\Domain\Model\BankAccount;
 
 use App\Domain\Api\Command;
 use App\Domain\Api\Payload;
+use App\Domain\Model\BankAccount\Event\WithdrawalExecuted;
 use EventEngine\EventEngine;
-use EventEngine\Messaging\Message;
 
 final class WithdrawalExecutedListener
 {
@@ -19,14 +19,14 @@ final class WithdrawalExecutedListener
         $this->eventEngine = $eventEngine;
     }
 
-    public function __invoke(Message $withdrawalExecuted) : void
+    public function __invoke(WithdrawalExecuted $withdrawalExecuted) : void
     {
         $this->eventEngine->dispatch(
             Command::RECEIVE_DEPOSIT,
             [
-                Payload::ACCOUNT_ID => $withdrawalExecuted->get('destinationId'),
-                Payload::SOURCE_ID => $withdrawalExecuted->get('accountId'),
-                Payload::AMOUNT => $withdrawalExecuted->get('amount'),
+                Payload::ACCOUNT_ID => $withdrawalExecuted->destinationId()->toString(),
+                Payload::SOURCE_ID => $withdrawalExecuted->accountId()->toString(),
+                Payload::AMOUNT => $withdrawalExecuted->amount()->toInt(),
             ]
         );
     }

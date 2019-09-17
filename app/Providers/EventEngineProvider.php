@@ -13,7 +13,9 @@ use App\Domain\Api\Query;
 use App\Domain\Api\Type;
 use App\Persistence\PostgresSingleStreamStrategy;
 use App\Persistence\PostgresTransactionalConnection;
+use App\System\Flavour\ApplicationMessagePort;
 use DB;
+use EventEngine\Data\ImmutableRecordDataConverter;
 use EventEngine\DocumentStore\DocumentStore;
 use EventEngine\DocumentStore\Postgres\PostgresDocumentStore;
 use EventEngine\EventEngine;
@@ -26,7 +28,7 @@ use EventEngine\Persistence\TransactionalConnection;
 use EventEngine\Prooph\V7\EventStore\ProophEventStore;
 use EventEngine\Prooph\V7\EventStore\ProophEventStoreMessageFactory;
 use EventEngine\Runtime\Flavour;
-use EventEngine\Runtime\PrototypingFlavour;
+use EventEngine\Runtime\FunctionalFlavour;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use Monolog\Handler\StreamHandler;
@@ -63,7 +65,10 @@ class EventEngineProvider extends ServiceProvider
         $this->app->singleton(
             Flavour::class,
             static function () {
-                    return new PrototypingFlavour();
+                return new FunctionalFlavour(
+                    new ApplicationMessagePort(),
+                    new ImmutableRecordDataConverter()
+                );
             }
         );
     }
